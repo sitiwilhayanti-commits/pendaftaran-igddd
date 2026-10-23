@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Informasi IGD - Rumah Sakit</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <header>
+        <h1>SISTEM INFORMASI PENDAFTARAN PASIEN IGD</h1>
+        <p>RUMAH SAKIT PELITA HARAPAN</p>
+    </header>
+
+    <div class="container">
+        <!-- SEKSI FORM INPUT PASIEN -->
+        <div class="card-form">
+            <h2>Pendaftaran Pasien Baru</h2>
+            <form id="formIGD">
+                <div class="form-group">
+                    <label for="noRM">No. Rekam Medis (RM)</label>
+                    <input type="text" id="noRM" placeholder="Contoh: RM-001" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="namaPasien">Nama Lengkap Pasien</label>
+                    <input type="text" id="namaPasien" placeholder="Masukkan nama pasien" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="triase">Kategori Triase (Tingkat Kegawatan)</label>
+                    <select id="triase" required>
+                        <option value="Merah">🔴 Gawat Darurat (Merah)</option>
+                        <option value="Kuning">🟡 Mendesak / Urgent (Kuning)</option>
+                        <option value="Hijau">🟢 Tidak Mendesak (Hijau)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="keluhan">Keluhan Utama / Diagnosis Awal</label>
+                    <textarea id="keluhan" rows="3" placeholder="Tuliskan keluhan utama pasien..." required></textarea>
+                </div>
+
+                <button type="submit" class="btn-submit">Daftarkan & Masukkan Antrean</button>
+            </form>
+        </div>
+
+        <!-- SEKSI MONITOR ANTREAN -->
+        <div class="card-tabel">
+            <h2>Live Monitor Antrean Pasien IGD</h2>
+            <div class="table-responsive">
+                <table id="tabelPasien">
+                    <thead>
+                        <tr>
+                            <th>Waktu Masuk</th>
+                            <th>No. RM</th>
+                            <th>Nama Pasien</th>
+                            <th>Status Triase</th>
+                            <th>Keluhan</th>
+                            <th>Aksi (Pilihan Hapus)</th> <!-- Kolom aksi -->
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Tampilan default jika tabel kosong -->
+                        <tr id="emptyRow">
+                            <td colspan="6" style="text-align: center; color: #888;">Belum ada antrean pasien saat ini.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGIKA JAVASCRIPT UNTUK INPUT DAN HAPUS DATA -->
+    <script>
+        document.getElementById('formIGD').addEventListener('submit', function (e) {
+            e.preventDefault(); // Mencegah browser reload saat form disubmit
+
+            // 1. Ambil data dari input form
+            const noRM = document.getElementById('noRM').value;
+            const namaPasien = document.getElementById('namaPasien').value;
+            const triase = document.getElementById('triase').value;
+            const keluhan = document.getElementById('keluhan').value;
+
+            // 2. Dapatkan waktu saat ini
+            const sekarang = new Date();
+            const waktuMasuk = sekarang.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WITA';
+
+            // 3. Hapus baris tulisan "Belum ada antrean" jika ada pasien baru masuk
+            const emptyRow = document.getElementById('emptyRow');
+            if (emptyRow) {
+                emptyRow.remove();
+            }
+
+            // 4. Buat baris tabel baru (<tr>)
+            const tbody = document.querySelector('#tabelPasien tbody');
+            const row = document.createElement('tr');
+
+            // 5. Atur warna badge berdasarkan kategori triase
+            let badgeClass = '';
+            if (triase === 'Merah') badgeClass = 'badge-merah';
+            else if (triase === 'Kuning') badgeClass = 'badge-kuning';
+            else badgeClass = 'badge-hijau';
+
+            // 6. Isi konten kolom-kolom tabel termasuk Tombol Selesai/Hapus
+            row.innerHTML = `
+                <td>${waktuMasuk}</td>
+                <td><strong>${noRM}</strong></td>
+                <td>${namaPasien}</td>
+                <td><span class="badge ${badgeClass}">${triase}</span></td>
+                <td>${keluhan}</td>
+                <td>
+                    <button class="btn-delete" onclick="hapusPasien(this)">Selesai / Hapus</button>
+                </td>
+            `;
+
+            // 7. Aturan IGD: Pasien Merah otomatis ditaruh paling atas, yang lain menyusul di bawah
+            if (triase === 'Merah') {
+                tbody.insertBefore(row, tbody.firstChild);
+            } else {
+                tbody.appendChild(row);
+            }
+
+            // 8. Reset atau kosongkan form setelah berhasil disimpan
+            document.getElementById('formIGD').reset();
+        });
+
+        // FUNGSI KHUSUS UNTUK MENGHAPUS DATA PASIEN
+        function hapusPasien(button) {
+            // Memunculkan kotak konfirmasi agar data tidak tidak sengaja terhapus
+            if (confirm("Apakah pasien ini sudah selesai dirawat dan ingin dihapus dari antrean?")) {
+                // Menargetkan baris <tr> tempat tombol hapus tersebut diklik
+                const baris = button.parentElement.parentElement;
+                const tabelBody = baris.parentElement;
+
+                // Menghapus baris dari tabel
+                baris.remove();
+
+                // Jika semua data habis, tampilkan kembali tulisan "Belum ada antrean"
+                if (tabelBody.children.length === 0) {
+                    tabelBody.innerHTML = `
+                        <tr id="emptyRow">
+                            <td colspan="6" style="text-align: center; color: #888;">Belum ada antrean pasien saat ini.</td>
+                        </tr>
+                    `;
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>
